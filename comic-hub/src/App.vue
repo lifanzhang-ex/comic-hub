@@ -1,117 +1,100 @@
 <template>
-  <!-- 导航栏（固定在顶部） -->
-  <div class="top-nav">
-    <nav class="app-nav">
-      <div class="app-nav-link-container">
-        <router-link class="app-nav-link" to="/">首页</router-link>
-      </div>
-      <div class="app-nav-link-container">
-        <router-link class="app-nav-link" to="/Comic">漫画</router-link>
-      </div>
-      <div class="app-nav-link-container">
-        <router-link class="app-nav-link" to="/Management">管理</router-link>
-      </div>
-      <div class="app-nav-link-container">
-        <router-link class="app-nav-link" to="/ComicPage/0000000002"><img class="avatar"
-            :src="avatar !== '' ? avatar : defaultAvatar"></router-link>
-      </div>
-    </nav>
+  <div class="app-root">
+    <header class="top-nav">
+      <nav class="app-nav">
+        <router-link class="nav-link" to="/">首页</router-link>
+        <router-link class="nav-link" to="/comic">漫画</router-link>
+        <router-link class="nav-link" to="/management">管理</router-link>
+        <router-link class="nav-link nav-avatar" to="/" aria-label="个人中心">
+          <img class="avatar" :src="defaultAvatar" alt="用户头像" />
+        </router-link>
+      </nav>
+    </header>
+
+    <main class="main-container">
+      <router-view />
+    </main>
   </div>
-
-  <main class="main-container-app">
-    <div class="app-nav-space"></div>
-    <!-- 内容区域（可滚动） -->
-    <router-view class="main-container-view" />
-  </main>
 </template>
-<script>
-import defaultAvatar from "@/assets/img/default-avatar.jpg";
 
-export default {
-  name: "app",
-  data() {
-    return {
-      avatar: "",
-      defaultAvatar: defaultAvatar
-    }
-  },
-  methods: {
-    appNavLinkClick(e) {
-      e.target.classList.add('cur-page');
-    }
-  }
-}
+<script setup>
+import defaultAvatar from '@/assets/img/default-avatar.jpg'
+
+defineOptions({ name: 'App' })
 </script>
-<style>
-@import url("./assets/css/common.css");
 
-body {
-  background-color: var(--bg-color-1st);
-}
-</style>
 <style scoped>
-.avatar {
-  height: 50px;
-  width: 50px;
-  border-radius: 50%;
-}
-
-.top-nav {
-  width: 100%;
-  height: 80px;
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  position: fixed;
-  background: var(--bg-color-1st);
-}
-
-.app-nav {
-  width: 100%;
-  display: flex;
-  flex-direction: row;
-}
-
-.app-nav-link-container {
-  flex: 1;
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-}
-
-.app-nav-link {
-  font-size: 1.2rem;
-  color: var(--font-color-1st);
-  text-decoration: none;
-  transition: 0.2s ease-in-out;
-}
-
-.app-nav-space {
-  min-height: 100px;
-}
-
-/* 直接用默认类名 */
-.router-link-active {
-  color: var(--font-color-cur) !important;
-  scale: 1.2;
-}
-
-.main-container-app {
-  width: 100%;
-  height: 100vh;
+.app-root {
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
-@media (min-width: 768px) {
-  /* 电脑端覆盖 */
-  .app-nav {
-  width: 60%;
+.top-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--nav-height);
+  display: flex;
+  justify-content: center;
+  background: var(--bg-color-1st);
+  border-bottom: 1px solid var(--bg-color-2nd);
+  z-index: 100;
 }
 
-.main-container-app {
-  width: 60%;
+.app-nav {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
 }
+
+.nav-link {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.2rem;
+  color: var(--font-color-1st);
+  text-decoration: none;
+  transition: color 0.2s ease-in-out, transform 0.2s ease-in-out;
+}
+
+.nav-link.router-link-active {
+  color: var(--font-color-cur);
+  transform: scale(1.1);
+}
+
+.nav-avatar {
+  flex: 0 0 auto;
+}
+
+.avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.main-container {
+  flex: 1;
+  width: 100%;
+  margin: 0 auto;
+  padding: calc(var(--nav-height) + 20px) 20px 40px;
+}
+
+@media (min-width: 768px) {
+  .app-nav {
+    width: var(--content-pc-width);
+    padding: 0;
+  }
+
+  .main-container {
+    width: var(--content-pc-width);
+    padding-left: 0;
+    padding-right: 0;
+  }
 }
 </style>

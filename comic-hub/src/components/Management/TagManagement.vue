@@ -2,12 +2,12 @@
     <div class="pane-archive">
         <div class="pane-toolbar">
             <el-button class="add-new-btn" @click="clickAddBtn">+ 新建标签</el-button>
-            <el-select v-model="tagTypeCode" id="tagTypeFilter" placeholder="全部类型">
+            <el-select v-model="tagTypeCode" placeholder="全部类型">
                 <el-option v-for="tagType in tagTypeOptions" :key="tagType.tagTypeCode" :label="tagType.tagTypeName"
                     :value="tagType.tagTypeCode" />
             </el-select>
             <el-input type="text" placeholder="输入关键词" v-model="keyword" />
-            <el-button id="tagFilterBtn" @click="getTagList">🔍 筛选</el-button>
+            <el-button @click="getTagList">🔍 筛选</el-button>
         </div>
         <div class="panel-table">
             <table>
@@ -47,21 +47,23 @@
     <el-dialog v-model="editDialogVisible">
         <el-form :model="form">
             <el-form-item label="标签类型">
-                <el-select v-model="form.tagTypeCode" id="tagTypeFilter" placeholder="全部类型">
+                <el-select v-model="form.tagTypeCode" placeholder="全部类型">
                     <el-option v-for="tagType in tagTypes" :key="tagType.tagTypeCode" :label="tagType.tagTypeName"
                         :value="tagType.tagTypeCode" />
                 </el-select>
             </el-form-item>
             <el-form-item label="标签编码">
-                <el-input v-model="form.tagCode" disabled="true" />
+                <el-input v-model="form.tagCode" disabled />
             </el-form-item>
             <el-form-item label="标签名称">
                 <el-input v-model="form.tagName" />
             </el-form-item>
             <el-form-item label="上级标签">
                 <div class="form-block">
-                    <el-input v-model="form.tagUpperName" disabled="true" />
-                    <el-button :disabled="haveUpperType" @click="clickUpperBtn(form)">选择上级标签</el-button>
+                    <el-input v-model="form.tagUpperName" disabled />
+                    <el-button :disabled="haveUpperType" @click="clickUpperBtn(form)">
+                        选择上级标签
+                    </el-button>
                 </div>
             </el-form-item>
         </el-form>
@@ -73,7 +75,7 @@
 
     <el-dialog class="upper-dialog" v-model="upperDialogVisible">
         <div class="form-block">
-            <el-input v-model="upperKeyword"/>
+            <el-input v-model="upperKeyword" />
             <el-button :disabled="haveUpperType" @click="getUpperTagList(form)">筛选</el-button>
         </div>
         <table>
@@ -115,16 +117,15 @@
             <el-button type="primary" @click="deleteTag(form)">确认</el-button>
         </template>
     </el-dialog>
-
 </template>
+
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
-import instance from '@/utils/request.js'
+import { ElMessage } from 'element-plus'
+import { adminApi } from '@/api'
+
 const props = defineProps({
-    modName: {
-        type: String,
-        require: true
-    }
+    modName: { type: String, required: true },
 })
 
 const isEdit = ref(false)
@@ -137,6 +138,7 @@ const upperTags = ref([])
 const tagTypeCode = ref('')
 const keyword = ref('')
 const upperKeyword = ref('')
+
 const form = ref({
     tagCode: '',
     tagName: '',
@@ -145,23 +147,7 @@ const form = ref({
     tagUpperCode: null,
     tagUpperName: '',
     tagTypeUpperCode: null,
-    tagTypeUpperName: ''
-})
-
-const haveUpperType = computed(() => {
-    if (!form.value.tagTypeCode) {
-        return true   // 禁用
-    }
-    const tagType = tagTypes.value.find(t => t.tagTypeCode === form.value.tagTypeCode)
-    return !(tagType && tagType.tagTypeUpperCode)
-})
-
-watch(() => form.value.tagTypeCode, (newVal) => {
-    const tagType = tagTypes.value.find(t => t.tagTypeCode === newVal)
-    if (tagType && tagType.tagTypeUpperCode) {
-        form.value.tagTypeUpperCode = tagType.tagTypeUpperCode
-        form.value.tagTypeUpperName = tagType.tagTypeUpperName
-    }
+    tagTypeUpperName: '',
 })
 
 const tagTypeOptions = computed(() => {
@@ -169,208 +155,156 @@ const tagTypeOptions = computed(() => {
         tagTypeCode: '',
         tagTypeName: '全部类型',
         tagTypeUpperCode: null,
-        tagTypeUpperName: ''
+        tagTypeUpperName: '',
     }
     return [allTagType, ...tagTypes.value]
 })
 
-const getTagList = async () => {
-    try {
-        // 构建查询参数对象
-        const params = new URLSearchParams()
+const haveUpperType = computed(() => {
+    if (!form.value.tagTypeCode) return true
+    const tagType = tagTypes.value.find((t) => t.tagTypeCode === form.value.tagTypeCode)
+    return !(tagType && tagType.tagTypeUpperCode)
+})
 
-        // 如果有类型编码，添加参数
+watch(
+    () => form.value.tagTypeCode,
+    (newVal) => {
+        const tagType = tagTypes.value.find((t) => t.tagTypeCode === newVal)
+        if (tagType && tagType.tagTypeUpperCode) {
+            form.value.tagTypeUpperCode = tagType.tagTypeUpperCode
+            form.value.tagTypeUpperName = tagType.tagTypeUpperName
+        }
+    },
+)
+
+async function getTagList() {
+    try {
+        const params = {}
         if (tagTypeCode.value && tagTypeCode.value.trim() !== '') {
-            params.append('tagTypeCode', tagTypeCode.value.trim())
+            params.tagTypeCode = tagTypeCode.value.trim()
         }
-
-        // 有关键字，添加参数
         if (keyword.value && keyword.value.trim() !== '') {
-            params.append('keyword', keyword.value.trim())
+            params.keyword = keyword.value.trim()
         }
-
-        // 拼接 URL
-        const url = `api/${props.modName}Management/tags${params.toString() ? '?' + params.toString() : ''}`
-        console.log('请求URL:', url)
-
-        // 发送请求
-        const res = await instance.get(url)
-        console.log('响应:', res)
-
-        if (res.status === 200 && res.data) {
-            tags.value = res.data
-        }
-    } catch (error) {
-        console.error('获取标签列表失败:', error)
+        const data = await adminApi.getTagList(props.modName, params)
+        tags.value = Array.isArray(data) ? data : []
+    } catch (e) {
+        console.error('获取标签列表失败:', e)
     }
 }
 
-
-const getTagTypeList = async () => {
+async function getTagTypeList() {
     try {
-        const res = await instance.get(`api/${props.modName}Management/tagtypes`)
-        console.log(res)
-        if (res.status === 200 && res.data) {
-            tagTypes.value = res.data
-        }
-    }
-    catch (error) {
-        console.error('发生错误', error)
+        const data = await adminApi.getTagTypeList(props.modName)
+        tagTypes.value = Array.isArray(data) ? data : []
+    } catch (e) {
+        console.error('获取标签类型失败:', e)
     }
 }
 
-const getUpperTagList = async (tag) => {
+async function getUpperTagList(tag) {
     try {
-        const params = new URLSearchParams()
-
+        const params = {}
         if (tag.tagTypeUpperCode && tag.tagTypeUpperCode.trim() !== '') {
-            params.append('tagTypeCode', tag.tagTypeUpperCode.trim())
+            params.tagTypeCode = tag.tagTypeUpperCode.trim()
         }
-        // 如果有类型编码，添加参数
-
-        // 有关键字，添加参数
         if (upperKeyword.value && upperKeyword.value.trim() !== '') {
-            params.append('keyword', upperKeyword.value.trim())
+            params.keyword = upperKeyword.value.trim()
         }
-
-        // 拼接 URL
-        const url = `api/${props.modName}Management/tags${params.toString() ? '?' + params.toString() : ''}`
-        console.log('请求URL:', url)
-
-        // 发送请求
-        const res = await instance.get(url)
-        console.log('响应:', res)
-
-        if (res.status === 200 && res.data) {
-            upperTags.value = res.data
-        }
-    }
-    catch (error) {
-        console.error("发生错误", error)
+        const data = await adminApi.getTagList(props.modName, params)
+        upperTags.value = Array.isArray(data) ? data : []
+    } catch (e) {
+        console.error('获取上级标签失败:', e)
     }
 }
 
-const clickUpperBtn = async (tag) => {
-    try {
-        console.log(tag)
-        await getUpperTagList(tag)
-        upperDialogVisible.value = true
-    }
-    catch (error) {
-        console.error("发生错误", error)
-    }
+async function clickUpperBtn(tag) {
+    await getUpperTagList(tag)
+    upperDialogVisible.value = true
 }
 
-const clickPickBtn = async (tag) => {
-    try {
-        form.value.tagUpperCode = tag.tagCode
-        form.value.tagUpperName = tag.tagName
-        upperDialogVisible.value = false
-    }
-    catch (error) {
-        console.error("发生错误", error)
-    }
+function clickPickBtn(tag) {
+    form.value.tagUpperCode = tag.tagCode
+    form.value.tagUpperName = tag.tagName
+    upperDialogVisible.value = false
 }
 
-const clickEditBtn = async (tag) => {
+async function clickEditBtn(tag) {
+    await getTagList()
+    await getTagTypeList()
+    const latest = tags.value.find((t) => t.tagCode === tag.tagCode)
+    if (latest) form.value = { ...latest }
+    isEdit.value = true
+    editDialogVisible.value = true
+}
+
+async function clickAddBtn() {
+    await getTagList()
+    await getTagTypeList()
+    form.value = {
+        tagCode: '',
+        tagName: '',
+        tagTypeCode: '',
+        tagTypeName: '',
+        tagUpperCode: null,
+        tagUpperName: '',
+        tagTypeUpperCode: null,
+        tagTypeUpperName: '',
+    }
+    isEdit.value = false
+    editDialogVisible.value = true
+}
+
+async function editTag(tag) {
     try {
+        await adminApi.updateTag(props.modName, tag.tagCode, tag)
+        editDialogVisible.value = false
         await getTagList()
         await getTagTypeList()
-        const latest = tags.value.find(t => t.tagCode === tag.tagCode)
-        form.value = { ...latest }
-        isEdit.value = true
-        editDialogVisible.value = true
-    }
-    catch (error) {
-        console.error("发生错误", error)
+    } catch (e) {
+        console.error('更新失败:', e)
+        ElMessage.error('更新失败')
     }
 }
 
-const editTag = async (tag) => {
+async function addTag(tag) {
     try {
-        const res = await instance.put(`api/${props.modName}Management/tags/${tag.tagCode}`, tag)
-        if (res.status === 200) {
-            editDialogVisible.value = false
-            await getTagList()
-            await getTagTypeList()
-        }
-    }
-    catch (error) {
-        console.error("发生错误", error)
-    }
-}
-
-const clickAddBtn = async () => {
-    try {
+        await adminApi.createTag(props.modName, tag)
+        editDialogVisible.value = false
         await getTagList()
         await getTagTypeList()
-        form.value = {
-            tagCode: '',
-            tagName: '',
-            tagTypeCode: '',
-            tagTypeName: '',
-            tagUpperCode: null,
-            tagUpperName: '',
-            tagTypeUpperCode: null,
-            tagTypeUpperName: ''
-        }
-        isEdit.value = false
-        editDialogVisible.value = true
-    }
-    catch (error) {
-        console.error("发生错误", error)
+    } catch (e) {
+        console.error('新增失败:', e)
+        ElMessage.error('新增失败')
     }
 }
 
-const addTag = async (tag) => {
-    try {
-        const res = await instance.post(`api/${props.modName}Management/tags`, tag)
-        if (res.status === 201) {
-            editDialogVisible.value = false
-            await getTagList()
-            await getTagTypeList()
-        }
-    }
-    catch (error) {
-        console.error("发生错误", error)
-    }
+async function clickDeleteBtn(tag) {
+    await getTagList()
+    await getTagTypeList()
+    const latest = tags.value.find((t) => t.tagCode === tag.tagCode)
+    if (latest) form.value = { ...latest }
+    deleteDialogVisible.value = true
 }
 
-const clickDeleteBtn = async (tag) => {
+async function deleteTag(tag) {
     try {
+        await adminApi.deleteTag(props.modName, tag.tagCode)
+        deleteDialogVisible.value = false
         await getTagList()
         await getTagTypeList()
-        const latest = tags.value.find(t => t.tagCode === tag.tagCode)
-        form.value = { ...latest }
-        deleteDialogVisible.value = true
-    }
-    catch (error) {
-        console.error("发生错误", error)
+    } catch (e) {
+        console.error('删除失败:', e)
+        ElMessage.error('删除失败')
     }
 }
 
-const deleteTag = async (tag) => {
-    try {
-        const res = await instance.delete(`api/${props.modName}Management/tags/${tag.tagCode}`)
-        if (res.status === 200) {
-            deleteDialogVisible.value = false
-            await getTagList()
-            await getTagTypeList()
-        }
-    }
-    catch (error) {
-        console.error("发生错误", error)
-    }
-}
-
-onMounted(() => getTagTypeList())
-onMounted(() => getTagList())
-
-
+onMounted(() => {
+    getTagTypeList()
+    getTagList()
+})
 </script>
-<style>
-@import url("../../assets/css/common.css");
-</style>
+
 <style scoped>
 .pane-archive {
     width: 100%;
@@ -395,7 +329,6 @@ onMounted(() => getTagList())
 .add-new-btn {
     color: var(--font-color-1st);
     padding: 5px 10px;
-    /* border-radius: var(--radius-s); */
     background-color: var(--bg-color-btn);
     border: none;
 }
@@ -414,9 +347,7 @@ th {
     color: var(--font-color-1st);
 }
 
-
 tr {
-
     border-bottom: 1px solid var(--bg-color-3rd);
 }
 
@@ -433,7 +364,7 @@ td {
     gap: 10px;
 }
 
-.el-dialog.upper-dialog{
+.el-dialog.upper-dialog {
     background-color: var(--bg-color-3rd) !important;
 }
 </style>

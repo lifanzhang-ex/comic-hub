@@ -1,11 +1,10 @@
 <template>
     <div class="panel-body">
-        <!-- 左侧：选择图书 + 封面预览 -->
         <aside id="panel-body-left">
             <div class="work-selector">
                 <el-select v-model="selectedWorkCode" placeholder="请选择图书" filterable @change="onWorkChange">
-                    <el-option v-for="work in works" :key="work.workCode" 
-                        :label="work.workName" :value="work.workCode" />
+                    <el-option v-for="work in works" :key="work.workCode" :label="work.workName"
+                        :value="work.workCode" />
                 </el-select>
             </div>
             <div class="cover-preview-container">
@@ -17,14 +16,13 @@
                 <p><strong>书名：</strong>{{ selectedWork.workName }}</p>
                 <p><strong>标签：</strong></p>
                 <div>
-                    <el-tag v-for="tag in selectedWork.tags" :key="tag.tagCode" size="small" style="margin:2px;">
+                    <el-tag v-for="tag in selectedWork.tags" :key="tag.tagCode" size="small" style="margin: 2px">
                         {{ tag.tagName }}
                     </el-tag>
                 </div>
             </div>
         </aside>
 
-        <!-- 右侧：章节列表 -->
         <aside id="panel-body-right">
             <div class="toolbar">
                 <el-button class="add-new-btn" @click="clickAddBtn" :disabled="!selectedWorkCode">
@@ -59,7 +57,6 @@
         </aside>
     </div>
 
-    <!-- 新增/编辑章节弹窗 -->
     <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑章节' : '新增章节'">
         <el-form :model="form" label-width="80px">
             <el-form-item label="章节编码" v-if="isEdit">
@@ -69,15 +66,11 @@
                 <el-input v-model="form.contentName" placeholder="请输入章节名" />
             </el-form-item>
             <el-form-item label="图片" v-if="!isEdit">
-                <el-upload
-                    action="#"
-                    :auto-upload="false"
-                    multiple
-                    :on-change="handleImagesChange"
-                    :file-list="imageFileList"
-                    list-type="picture-card"
-                >
-                    <el-icon><Plus /></el-icon>
+                <el-upload action="#" :auto-upload="false" multiple :on-change="handleImagesChange"
+                    :file-list="imageFileList" list-type="picture-card">
+                    <el-icon>
+                        <Plus />
+                    </el-icon>
                 </el-upload>
                 <div class="upload-tip">支持多图上传，按顺序排列</div>
             </el-form-item>
@@ -88,7 +81,6 @@
         </template>
     </el-dialog>
 
-    <!-- 删除确认弹窗 -->
     <el-dialog v-model="deleteDialogVisible">
         确认删除章节【{{ form.contentName }}】吗？
         <template #footer>
@@ -100,17 +92,14 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import instance from '@/utils/request.js'
+import { adminApi } from '@/api'
 
 const props = defineProps({
-    modName: {
-        type: String,
-        require: true
-    }
+    modName: { type: String, required: true },
 })
 
-// ============ 响应式数据 ============
 const works = ref([])
 const chapters = ref([])
 const selectedWorkCode = ref('')
@@ -124,41 +113,35 @@ const deleteDialogVisible = ref(false)
 const form = ref({
     contentCode: '',
     contentName: '',
-    workCode: ''
+    workCode: '',
 })
 
 const imageFileList = ref([])
 
-// ============ API 方法 ============
-const getWorkList = async () => {
+async function getWorkList() {
     try {
-        const res = await instance.get(`api/${props.modName}Management/works/list`)
-        if (res.status === 200 && res.data) {
-            works.value = res.data
-        }
-    } catch (error) {
-        console.error('获取作品列表失败:', error)
+        const data = await adminApi.getWorkList(props.modName)
+        works.value = Array.isArray(data) ? data : []
+    } catch (e) {
+        console.error('获取作品列表失败:', e)
     }
 }
 
-const loadChapters = async () => {
+async function loadChapters() {
     if (!selectedWorkCode.value) {
-        alert('请先选择图书')
+        ElMessage.warning('请先选择图书')
         return
     }
     try {
-        const res = await instance.get(`api/${props.modName}Management/works/${selectedWorkCode.value}/contents`)
-        if (res.status === 200 && res.data) {
-            chapters.value = res.data
-        }
-    } catch (error) {
-        console.error('加载章节失败:', error)
+        const data = await adminApi.getChapterList(props.modName, selectedWorkCode.value)
+        chapters.value = Array.isArray(data) ? data : []
+    } catch (e) {
+        console.error('加载章节失败:', e)
     }
 }
 
-// ============ 图书选择 ============
-const onWorkChange = (workCode) => {
-    const found = works.value.find(w => w.workCode === workCode)
+function onWorkChange(workCode) {
+    const found = works.value.find((w) => w.workCode === workCode)
     if (found) {
         selectedWork.value = found
         selectedWorkCover.value = found.coverUrl || ''
@@ -170,118 +153,100 @@ const onWorkChange = (workCode) => {
     }
 }
 
-// ============ 章节操作 ============
-const resetForm = () => {
+function resetForm() {
     form.value = {
         contentCode: '',
         contentName: '',
-        workCode: selectedWorkCode.value || ''
+        workCode: selectedWorkCode.value || '',
     }
     imageFileList.value = []
 }
 
-const clickAddBtn = () => {
+function clickAddBtn() {
     resetForm()
     isEdit.value = false
     dialogVisible.value = true
 }
 
-const clickEditBtn = (chapter) => {
+function clickEditBtn(chapter) {
     form.value = {
         contentCode: chapter.contentCode,
         contentName: chapter.contentName,
-        workCode: chapter.workCode || selectedWorkCode.value
+        workCode: chapter.workCode || selectedWorkCode.value,
     }
     isEdit.value = true
     dialogVisible.value = true
 }
 
-const clickDeleteBtn = (chapter) => {
+function clickDeleteBtn(chapter) {
     form.value = {
         contentCode: chapter.contentCode,
         contentName: chapter.contentName,
-        workCode: chapter.workCode || selectedWorkCode.value
+        workCode: chapter.workCode || selectedWorkCode.value,
     }
     deleteDialogVisible.value = true
 }
 
-// ============ 图片上传处理 ============
-const handleImagesChange = (file, fileList) => {
+function handleImagesChange(file, fileList) {
     imageFileList.value = fileList
 }
 
-// ============ 提交 ============
-const handleConfirm = async () => {
+async function handleConfirm() {
     if (!form.value.contentName || form.value.contentName.trim() === '') {
-        alert('请输入章节名')
+        ElMessage.warning('请输入章节名')
         return
     }
-
     if (!isEdit.value && imageFileList.value.length === 0) {
-        alert('请至少上传一张图片')
+        ElMessage.warning('请至少上传一张图片')
         return
     }
 
     try {
-        let res
         if (isEdit.value) {
-            // 编辑：只更新章节名
-            const payload = { contentName: form.value.contentName.trim() }
-            res = await instance.put(
-                `api/${props.modName}Management/works/${selectedWorkCode.value}/contents/${form.value.contentCode}`,
-                payload
+            await adminApi.updateChapter(
+                props.modName,
+                selectedWorkCode.value,
+                form.value.contentCode,
+                { contentName: form.value.contentName.trim() },
             )
         } else {
-            // 新增：使用 FormData
             const formData = new FormData()
             formData.append('contentName', form.value.contentName.trim())
-            imageFileList.value.forEach(file => {
+            imageFileList.value.forEach((file) => {
                 formData.append('images', file.raw)
             })
-            res = await instance.post(
-                `api/${props.modName}Management/works/${selectedWorkCode.value}/contents/create`,
-                formData,
-                {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                }
-            )
+            await adminApi.createChapter(props.modName, selectedWorkCode.value, formData)
         }
-        if (res.status === 200 || res.status === 201) {
-            dialogVisible.value = false
-            await loadChapters()
-        }
-    } catch (error) {
-        console.error('保存失败:', error)
-        alert('保存失败，请检查数据')
+        dialogVisible.value = false
+        await loadChapters()
+    } catch (e) {
+        console.error('保存失败:', e)
+        ElMessage.error('保存失败，请检查数据')
     }
 }
 
-const deleteChapter = async () => {
+async function deleteChapter() {
     try {
-        const res = await instance.delete(
-            `api/${props.modName}Management/works/${selectedWorkCode.value}/contents/${form.value.contentCode}`
+        await adminApi.deleteChapter(
+            props.modName,
+            selectedWorkCode.value,
+            form.value.contentCode,
         )
-        if (res.status === 200) {
-            deleteDialogVisible.value = false
-            await loadChapters()
-        }
-    } catch (error) {
-        console.error('删除失败:', error)
-        alert('删除失败，请重试')
+        deleteDialogVisible.value = false
+        await loadChapters()
+    } catch (e) {
+        console.error('删除失败:', e)
+        ElMessage.error('删除失败，请重试')
     }
 }
 
-// ============ 工具方法 ============
-const formatDate = (dateStr) => {
+function formatDate(dateStr) {
     if (!dateStr) return '-'
     const d = new Date(dateStr)
     return d.toLocaleString('zh-CN')
 }
 
-// ============ 生命周期 ============
-onMounted(async () => {
-    await getWorkList()
-})
+onMounted(getWorkList)
 </script>
 
 <style scoped>

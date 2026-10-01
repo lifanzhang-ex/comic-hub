@@ -31,7 +31,7 @@
     <el-dialog v-model="dialogEditVisible">
         <el-form :model="form">
             <el-form-item label="类型编码">
-                <el-input v-model="form.tagTypeCode" autocomplete="off" disabled="true" />
+                <el-input v-model="form.tagTypeCode" autocomplete="off" disabled />
             </el-form-item>
             <el-form-item label="类型名称">
                 <el-input v-model="form.tagTypeName" autocomplete="off" />
@@ -58,21 +58,19 @@
         <template #footer>
             <div class="dialog-footer">
                 <el-button @click="dialogDeleteVisible = false">Cancel</el-button>
-                <el-button type="primary" @click="deleteTagType(form)">
-                    Confirm
-                </el-button>
+                <el-button type="primary" @click="deleteTagType(form)">Confirm</el-button>
             </div>
         </template>
     </el-dialog>
 </template>
+
 <script setup>
 import { onMounted, ref, computed } from 'vue'
-import instance from '@/utils/request.js';
+import { ElMessage } from 'element-plus'
+import { adminApi } from '@/api'
+
 const props = defineProps({
-    modName: {
-        type: String,
-        require: true
-    }
+    modName: { type: String, required: true },
 })
 
 const isEdit = ref(false)
@@ -83,121 +81,89 @@ const form = ref({
     tagTypeCode: null,
     tagTypeName: '',
     tagTypeUpperCode: null,
-    tagTypeUpperName: ''
+    tagTypeUpperName: '',
 })
 
-const getTagTypeList = async () => {
-    try {
-        const res = await instance.get(`api/${props.modName}Management/tagtypes`)
-        console.log(res)
-        if (res.status === 200 && res.data) {
-            tagTypes.value = res.data
-        }
+const tagTypeOptions = computed(() => {
+    const emptyOption = {
+        tagTypeCode: null,
+        tagTypeName: '无',
+        tagTypeUpperCode: '',
+        tagTypeUpperName: '',
     }
-    catch (error) {
-        console.error('发生错误', error)
+    return [emptyOption, ...tagTypes.value]
+})
+
+async function getTagTypeList() {
+    try {
+        const data = await adminApi.getTagTypeList(props.modName)
+        tagTypes.value = Array.isArray(data) ? data : []
+    } catch (e) {
+        console.error('获取标签类型失败:', e)
     }
 }
 
-const clickAddBtn = async () => {
+function clickAddBtn() {
     form.value = {
         tagTypeCode: '',
         tagTypeName: '',
         tagTypeUpperCode: null,
-        tagTypeUpperName: ''
+        tagTypeUpperName: '',
     }
     isEdit.value = false
     dialogEditVisible.value = true
 }
 
-const clickEditBtn = async (tagType) => {
+async function clickEditBtn(tagType) {
+    await getTagTypeList()
+    const latest = tagTypes.value.find((tt) => tt.tagTypeCode === tagType.tagTypeCode)
+    if (latest) form.value = { ...latest }
+    isEdit.value = true
+    dialogEditVisible.value = true
+}
+
+function clickDeleteBtn(tagType) {
+    const latest = tagTypes.value.find((tt) => tt.tagTypeCode === tagType.tagTypeCode)
+    if (latest) form.value = { ...latest }
+    dialogDeleteVisible.value = true
+}
+
+async function updateTagType(tagType) {
     try {
+        await adminApi.updateTagType(props.modName, tagType.tagTypeCode, tagType)
+        dialogEditVisible.value = false
         await getTagTypeList()
-        const latest = tagTypes.value.find(tt => tt.tagTypeCode === tagType.tagTypeCode)
-        form.value = { ...latest }
-        isEdit.value = true
-        dialogEditVisible.value = true
-    }
-    catch (error) {
-        console.error('发生错误', error)
+    } catch (e) {
+        console.error('更新失败:', e)
+        ElMessage.error('更新失败')
     }
 }
 
-const updateTagType = async (tagType) => {
+async function createTagType(tagType) {
     try {
-        const res = await instance.put(`api/${props.modName}Management/tagtypes/${tagType.tagTypeCode}`, tagType)
-        console.log(res)
-        if (res.status === 200 && res.data) {
-            dialogEditVisible.value = false
-        }
-        else {
-            alert(res)
-        }
+        await adminApi.createTagType(props.modName, tagType)
+        dialogEditVisible.value = false
         await getTagTypeList()
-    }
-    catch (error) {
-        console.error('发生错误', error)
+    } catch (e) {
+        console.error('新增失败:', e)
+        ElMessage.error('新增失败')
     }
 }
 
-const createTagType = async (tagType) => {
+async function deleteTagType(tagType) {
     try {
-        const res = await instance.post(`api/${props.modName}Management/tagtypes`, tagType)
-        console.log(res)
-        if (res.status === 201 && res.data) {
-            dialogEditVisible.value = false
-        }
-        else {
-            alert(res)
-        }
-        await getTagTypeList()
-    }
-    catch (error) {
-        console.error('发生错误', error)
-    }
-}
-
-const deleteTagType = async (tagType) => {
-    try {
-        const res = await instance.delete(`api/${props.modName}Management/tagtypes/${tagType.tagTypeCode}`)
-        console.log(res)
+        await adminApi.deleteTagType(props.modName, tagType.tagTypeCode)
         dialogDeleteVisible.value = false
         await getTagTypeList()
-    }
-    catch (error) {
-        console.error('发生错误', error)
-    }
-
-}
-
-const clickDeleteBtn = async (tagType) => {
-    try {
-        await getTagTypeList()
-        const latest = tagTypes.value.find(tt => tt.tagTypeCode === tagType.tagTypeCode)
-        form.value = { ...latest }
-        dialogDeleteVisible.value = true
-    }
-    catch (error) {
-        console.error('发生错误', error)
+    } catch (e) {
+        console.error('删除失败:', e)
+        ElMessage.error('删除失败')
     }
 }
 
-const tagTypeOptions = computed(() => {
-    // 头部插入一个“无”选项，tagTypeCode 为空字符串（或 null，根据需求）
-    const emptyOption = {
-        tagTypeCode: null,        // 前端用空字符串，提交时转为 null
-        tagTypeName: '无',
-        tagTypeUpperCode: '',
-        tagTypeUpperName: ''
-    }
-    return [emptyOption, ...tagTypes.value]
-})
-
-onMounted(() => getTagTypeList())
+onMounted(getTagTypeList)
 </script>
-<style>
-@import url("../../assets/css/common.css");
-</style>
+
 <style scoped>
 .panel-body {
     width: 100%;
@@ -211,7 +177,6 @@ onMounted(() => getTagTypeList())
 .add-new-btn {
     color: var(--font-color-1st);
     padding: 5px 10px;
-    /* border-radius: var(--radius-s); */
     background-color: var(--bg-color-btn);
     border: none;
 }
@@ -230,7 +195,6 @@ th {
 }
 
 tr {
-
     border-bottom: 1px solid var(--bg-color-3rd);
 }
 

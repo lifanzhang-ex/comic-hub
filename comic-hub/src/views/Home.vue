@@ -1,88 +1,47 @@
 <template>
-    <div class="works-swiper" id="home-comic">
-        <router-link class="swiper-item" v-for="item in comicRandomList" :key="item.workCode"
-            :to="'/ComicDetail/' + item.workCode">
-            <img class="swiper-item-cover" :src="item.coverUrl" alt="">
-            <label class="swiper-item-title">{{ item.workName }}</label>
-        </router-link>
-    </div>
-    <!-- <router-view>
-    </router-view> -->
+    <section class="home">
+        <div v-if="loading" class="state">加载中...</div>
+        <div v-else-if="error" class="state state-error">{{ error }}</div>
+        <div v-else-if="!works.length" class="state">暂无作品</div>
+        <div v-else class="works-grid">
+            <router-link v-for="item in works" :key="item.workCode" class="work-item"
+                :to="'/comic/detail/' + item.workCode">
+                <img class="work-cover" :src="item.coverUrl" :alt="item.workName" loading="lazy" />
+                <span class="work-title">{{ item.workName }}</span>
+            </router-link>
+        </div>
+    </section>
 </template>
+
 <script setup>
-import { ref, reactive, computed, watch, onMounted, nextTick } from 'vue';
-import { useRouter, useRoute } from 'vue-router'
-import instance from '@/utils/request.js';
+import { ref, onMounted } from 'vue'
+import { comicApi } from '@/api/index.js'
+
+defineOptions({ name: 'HomeView' })
 
 const loading = ref(false)
-const comicRandomList = ref([])
-const getRandomComic = async () => {
-    loading.value = true;
-    try {
-        const res = await instance.get(`api/Comic/works/random?count=15`)
-        console.log(res);
-        if (res.status === 200 && res.data.length > 0) {
-            comicRandomList.value = []
-            for (let i = 0; i < res.data.length; i++) {
-                comicRandomList.value.push(res.data[i])
-            }
-        }
-    }
-    catch {
+const error = ref('')
+const works = ref([])
 
+async function fetchWorks() {
+    loading.value = true
+    error.value = ''
+    try {
+        const data = await comicApi.getRandomWorks(15)
+        works.value = Array.isArray(data) ? data : []
+    } catch (e) {
+        error.value = '加载失败，请稍后重试'
+        console.error(e)
+    } finally {
+        loading.value = false
     }
 }
 
-onMounted(() => getRandomComic())
-
+onMounted(fetchWorks)
 </script>
-<style>
-@import url("../assets/css/common.css");
-</style>
 
 <style scoped>
-router-link {
-    color: var(--font-color-1st);
-}
-
-.works-swiper {
+.home {
     width: 100%;
-    display: grid;
-    grid-template: auto /repeat(5, 1fr);
-    grid-gap: 20px;
-    padding: 20px;
-}
-
-.swiper-item {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    transition: 0.2s ease-in-out;
-}
-
-.swiper-item:hover {
-    scale: 1.1;
-}
-
-.swiper-item-cover {
-    width: 100%;
-    height: auto;
-    border-radius: var(--radius-s);
-    object-fit: cover;
-    object-position: center;
-    aspect-ratio: 3/4;
-}
-
-.swiper-item-title {
-    color: var(--font-color-1st);
-}
-
-@media (max-width: 768px) {
-
-    /* 电脑端覆盖 */
-    .works-swiper {
-        grid-template: auto /repeat(3, 1fr);
-    }
 }
 </style>

@@ -1,186 +1,220 @@
 <template>
-    <div class=" work-detail">
-        <img class="cover" :src="detail.coverUrl" alt="">
-        <div class="detail">
-            <div class="work-name">{{ detail.workName }}</div>
-            <div class="upload-time">首次上传于：{{ detail.uploadTime }}</div>
-            <div class="update-time">最后更新于：{{ detail.updateTime }}</div>
-            <div class="tag-group" v-for="tagType in tagGroups" :key="tagType.tagCode">
-                <div class="tag-group-title">{{ tagType.tagTypeName }}</div>
-                <div class="tag-list">
-                    <router-link class="tag" v-for="tag in tagType.tags" :key="tag.tagCode">
-                        {{ tag.tagName }}
-                    </router-link>
+    <section class="comic-detail">
+        <div v-if="loading" class="state">加载中...</div>
+        <div v-else-if="!detail.workCode" class="state">未找到作品</div>
+
+        <template v-else>
+            <div class="work-header">
+                <img class="cover" :src="detail.coverUrl" :alt="detail.workName" />
+                <div class="info">
+                    <h1 class="work-name">{{ detail.workName }}</h1>
+                    <p class="meta">首次上传：{{ detail.uploadTime || '-' }}</p>
+                    <p class="meta">最后更新：{{ detail.updateTime || '-' }}</p>
+
+                    <div v-for="group in tagGroups" :key="group.tagTypeCode" class="tag-group">
+                        <h3 class="tag-group-title">{{ group.tagTypeName }}</h3>
+                        <div class="tag-list">
+                            <span v-for="tag in group.tags" :key="tag.tagCode" class="tag">
+                                {{ tag.tagName }}
+                            </span>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
-    <div class="content-list-title">目录</div>
-    <div class="content-list">
-        <router-link class="content" v-for="content in contents" :key="content.contentCode"
-            :to="'/ComicPage/' + content.contentCode">
-            {{ content.contentName }}
-        </router-link>
-    </div>
-</template>
-<script setup>
-import { ref, reactive, onMounted, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router'
-import instance from '@/utils/request';
 
-defineOptions({
-    name: "ComicPage",
-    inheritAttrs: false
-})
+            <h2 class="section-title">目录</h2>
+            <div class="content-list">
+                <router-link v-for="content in contents" :key="content.contentCode" class="content-item"
+                    :to="'/comic/page/' + content.contentCode">
+                    {{ content.contentName }}
+                </router-link>
+            </div>
+        </template>
+    </section>
+</template>
+
+<script setup>
+import { ref, computed, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import { comicApi } from '@/api'
+
+defineOptions({ name: 'ComicDetailView' })
 
 const route = useRoute()
-const router = useRouter()
 
-const detail = ref({
-    workCode: '',
-    workName: '',
-    uploadTime: '',
-    updateTime: '',
-    coverUrl: '',
-    tags: []
-})
-
-const tagGroups = ref([])
-
+const loading = ref(false)
+const detail = ref(createEmptyDetail())
 const contents = ref([])
 
-const getWorkDetail = async () => {
-    try {
+/* 标签按类型分组（computed 派生） */
+const tagGroups = computed(() => {
+    const tags = detail.value.tags || []
+    const map = new Map()
 
-        const res = await instance.get(`api/Comic/works/detail/${detail.workCode}`)
-        console.log(res.data)
-        if (res.status === 200 && res.data) {
-            if (res.data.work) {
-                detail.value = res.data.work
-                const tagMap = {};
-                detail.value.tags.forEach(t => {
-                    if (!tagMap[t.tagTypeCode]) {
-                        tagMap[t.tagTypeCode] = { tagTypeCode: t.tagTypeCode, tagTypeName: t.tagTypeName, tags: [] };
-                    }
-                    tagMap[t.tagTypeCode].tags.push({ tagCode: t.tagCode, tagName: t.tagName });
-                });
-                const groups = Object.values(tagMap);
-                groups.sort((a, b) => a.tagTypeCode.localeCompare(b.tagTypeCode));
-                groups.forEach(g => g.tags.sort((a, b) => a.tagName.localeCompare(b.tagName)));
-                tagGroups.value = groups;
-            }
-            if (res.data.contents) {
-                contents.value = res.data.contents;
-                contents.value.sort((a, b) => a.contentCode.localeCompare(b.contentCode));
-            }
+    for (const tag of tags) {
+        if (!map.has(tag.tagTypeCode)) {
+            map.set(tag.tagTypeCode, {
+                tagTypeCode: tag.tagTypeCode,
+                tagTypeName: tag.tagTypeName,
+                tags: [],
+            })
         }
+        map.get(tag.tagTypeCode).tags.push({
+            tagCode: tag.tagCode,
+            tagName: tag.tagName,
+        })
     }
-    catch (error) {
-        console.error('发生错误', error)
+
+    const groups = [...map.values()]
+    groups.sort((a, b) => a.tagTypeCode.localeCompare(b.tagTypeCode))
+    groups.forEach((g) => g.tags.sort((a, b) => a.tagName.localeCompare(b.tagName)))
+    return groups
+})
+
+function createEmptyDetail() {
+    return {
+        workCode: '',
+        workName: '',
+        uploadTime: '',
+        updateTime: '',
+        coverUrl: '',
+        tags: [],
     }
-    console.log(detail.value)
-    console.log(tagGroups.value)
-    console.log(contents.value)
 }
 
-// onMounted(()=>getWorkDetail())
+async function fetchDetail(workCode) {
+    loading.value = true
+    try {
+        const data = await comicApi.getWorkDetail(workCode)
 
-watch(() => route.params.workCode,
-    () => {
-        try {
-            detail.workCode = route.params.workCode
-            getWorkDetail()
+        if (data?.work) {
+            detail.value = { ...createEmptyDetail(), ...data.work }
         }
-        catch {
 
-        }
+        contents.value = (data?.contents || [])
+            .slice()
+            .sort((a, b) => a.contentCode.localeCompare(b.contentCode))
+    } catch (e) {
+        console.error('加载作品详情失败:', e)
+    } finally {
+        loading.value = false
+    }
+}
+
+watch(
+    () => route.params.workCode,
+    (workCode) => {
+        if (workCode) fetchDetail(workCode)
     },
-    { immediate: true })
+    { immediate: true },
+)
 </script>
-<style>
-@import url(../../assets/css/common.css);
-</style>
+
 <style scoped>
-.work-detail {
+.comic-detail {
     width: 100%;
+}
+
+.work-header {
     display: flex;
-    flex-direction: row;
-    gap: 5%;
-    border-bottom: 1px solid var(--font-color-3rd);
-    padding: 50px;
+    gap: 40px;
+    padding: 40px 0;
+    border-bottom: 1px solid var(--bg-color-3rd);
 }
 
 .cover {
     width: 25%;
+    min-width: 160px;
+    max-width: 260px;
     aspect-ratio: 3 / 4;
     object-fit: cover;
-    object-position: center;
     border-radius: var(--radius-l);
     align-self: flex-start;
+    background-color: var(--bg-color-3rd);
 }
 
-.detail {
+.info {
+    flex: 1;
     display: flex;
     flex-direction: column;
+    gap: 8px;
 }
 
 .work-name {
     color: var(--font-color-1st);
-    font-size: 3rem;
+    font-size: 2.4rem;
+    line-height: 1.2;
 }
 
-.update-time,
-.upload-time {
+.meta {
     color: var(--font-color-3rd);
-    font-size: 0.8rem;
-    padding: 10px;
+    font-size: 0.85rem;
 }
 
 .tag-group {
-    margin: 5px;
+    margin-top: 10px;
 }
 
 .tag-group-title {
-    font-size: 1.2rem;
-    color: var(--font-color-1st);
-    padding: 5px;
+    color: var(--font-color-2nd);
+    font-size: 1.1rem;
+    margin-bottom: 6px;
 }
 
 .tag-list {
-    padding: 5px;
     display: flex;
-    flex-direction: row;
-    align-items: center;
+    flex-wrap: wrap;
     gap: 10px;
-        flex-wrap: wrap;
-
 }
 
 .tag {
-    padding: 5px;
-    background-color: var(--bg-color-tag-type);
-    border-radius: var(--radius-s);
+    padding: 4px 10px;
+    background-color: var(--bg-color-tag);
     color: var(--font-color-1st);
-    text-decoration: none;
-    white-space: nowrap;
+    border-radius: var(--radius-s);
+    font-size: 0.85rem;
+}
+
+.section-title {
+    color: var(--font-color-1st);
+    font-size: 1.6rem;
+    margin: 24px 0 12px;
 }
 
 .content-list {
     display: flex;
-    flex-direction: row;
+    flex-wrap: wrap;
     gap: 10px;
 }
 
-.content-list-title {
+.content-item {
+    padding: 6px 12px;
+    background-color: var(--bg-color-tag-type);
     color: var(--font-color-1st);
-    font-size: 2rem;
+    text-decoration: none;
+    border-radius: var(--radius-s);
+    font-size: 0.9rem;
+    transition: filter 0.2s;
 }
 
-.content {
-    padding: 5px;
-    color: var(--font-color-1st);
-    background-color: var(--bg-color-tag);
-    border-radius: var(--radius-s);
-    text-decoration: none;
+.content-item:hover {
+    filter: brightness(1.15);
+}
+
+@media (max-width: 768px) {
+    .work-header {
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+        padding: 20px 0;
+    }
+
+    .info {
+        width: 100%;
+    }
+
+    .work-name {
+        font-size: 1.8rem;
+    }
 }
 </style>

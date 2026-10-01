@@ -24,15 +24,13 @@ const TagManagement = defineAsyncComponent(() => import("@/components/Management
 const activeTab = ref('work')
 
 const props = defineProps({
-    modName:{
-        type:String,
-        require:true
+    modName: {
+        type: String,
+        require: true
     }
 })
 </script>
-<style>
-@import url('../../assets/css/common.css');
-</style>
+<style></style>
 
 <style scoped>
 .tab-archives {
@@ -60,5 +58,4 @@ const props = defineProps({
 .tab-archives-pane {
     height: 100%;
 }
-
 </style>

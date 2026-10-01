@@ -512,7 +512,7 @@ npm run lint
         <router-link class="app-nav-link" to="/Management">管理</router-link>
       </div>
       <div class="app-nav-link-container">
-        <router-link class="app-nav-link" to="/ComicPage/0000000002"><img class="avatar"
+        <router-link class="app-nav-link" to="/comic/page/0000000002"><img class="avatar"
             :src="avatar !== '' ? avatar : defaultAvatar"></router-link>
       </div>
     </nav>
@@ -726,12 +726,12 @@ const routes =[
         component:()=>import("@/views/Comic/Comic.vue") //这是异步加载，不会在顶部全部加载，优化加载，首页以外建议全部异步引入
     },
     {
-        path:"/ComicDetail/:workCode",
+        path:"/comic/detail/:workCode",
         name:"comicDetail",
         component:()=>import("@/views/Comic/ComicDetail.vue")
     },
     {
-        path:"/ComicPage/:contentCode",
+        path:"/comic/page/:contentCode",
         name:"comicPage",
         component:()=>import("@/views/Comic/ComicPage.vue")
     }
@@ -911,7 +911,7 @@ export default instance;
     <div class="content-list-title">目录</div>
     <div class="content-list">
         <router-link class="content" v-for="content in contents" :key="content.contentCode"
-            :to="'/ComicPage/' + content.contentCode">
+            :to="'/comic/page/' + content.contentCode">
             {{ content.contentName }}
         </router-link>
     </div>
@@ -1093,10 +1093,10 @@ watch(() => route.params.workCode,
         </div>
         <div class="pre-n-next">
             <router-link class="pre" v-if="previousContent.contentCode"
-                :to="'/ComicPage/' + previousContent.contentCode">
+                :to="'/comic/page/' + previousContent.contentCode">
                 上一话【{{ previousContent.contentName }}】
             </router-link>
-            <router-link class="next" v-if="nextContent.contentCode" :to="'/ComicPage/' + nextContent.contentCode">
+            <router-link class="next" v-if="nextContent.contentCode" :to="'/comic/page/' + nextContent.contentCode">
                 下一话【{{ nextContent.contentName }}】
             </router-link>
         </div>
@@ -1164,7 +1164,7 @@ watch(
             currentContent.contentCode = newValue
             loadImageList()
         } else {
-            router.push('/Comic')
+            router.push('/comic')
         }
     },
     { immediate: true } // 组件创建时立即执行一次
@@ -1246,7 +1246,7 @@ watch(
 <template>
     <div class="works-swiper" id="home-comic">
         <router-link class="swiper-item" v-for="item in comicRandomList" :key="item.workCode"
-            :to="'/ComicDetail/' + item.workCode">
+            :to="'/comic/detail/' + item.workCode">
             <img class="swiper-item-cover" :src="item.coverUrl" alt="">
             <label class="swiper-item-title">{{ item.workName }}</label>
         </router-link>
@@ -1442,7 +1442,7 @@ npm run lint
         <router-link class="app-nav-link" to="/Management">管理</router-link>
       </div>
       <div class="app-nav-link-container">
-        <router-link class="app-nav-link" to="/ComicPage/0000000002"><img class="avatar"
+        <router-link class="app-nav-link" to="/comic/page/0000000002"><img class="avatar"
             :src="avatar !== '' ? avatar : defaultAvatar"></router-link>
       </div>
     </nav>
@@ -3337,12 +3337,12 @@ const routes =[
         component:()=>import("@/views/Comic/Comic.vue") //这是异步加载，不会在顶部全部加载，优化加载，首页以外建议全部异步引入
     },
     {
-        path:"/ComicDetail/:workCode",
+        path:"/comic/detail/:workCode",
         name:"comicDetail",
         component:()=>import("@/views/Comic/ComicDetail.vue")
     },
     {
-        path:"/ComicPage/:contentCode",
+        path:"/comic/page/:contentCode",
         name:"comicPage",
         component:()=>import("@/views/Comic/ComicPage.vue")
     },
@@ -3509,7 +3509,7 @@ export default instance;
     <div class="content-list-title">目录</div>
     <div class="content-list">
         <router-link class="content" v-for="content in contents" :key="content.contentCode"
-            :to="'/ComicPage/' + content.contentCode">
+            :to="'/comic/page/' + content.contentCode">
             {{ content.contentName }}
         </router-link>
     </div>
@@ -3691,10 +3691,10 @@ watch(() => route.params.workCode,
         </div>
         <div class="pre-n-next">
             <router-link class="pre" v-if="previousContent.contentCode"
-                :to="'/ComicPage/' + previousContent.contentCode">
+                :to="'/comic/page/' + previousContent.contentCode">
                 上一话【{{ previousContent.contentName }}】
             </router-link>
-            <router-link class="next" v-if="nextContent.contentCode" :to="'/ComicPage/' + nextContent.contentCode">
+            <router-link class="next" v-if="nextContent.contentCode" :to="'/comic/page/' + nextContent.contentCode">
                 下一话【{{ nextContent.contentName }}】
             </router-link>
         </div>
@@ -3762,7 +3762,7 @@ watch(
             currentContent.contentCode = newValue
             loadImageList()
         } else {
-            router.push('/Comic')
+            router.push('/comic')
         }
     },
     { immediate: true } // 组件创建时立即执行一次
@@ -3844,7 +3844,7 @@ watch(
 <template>
     <div class="works-swiper" id="home-comic">
         <router-link class="swiper-item" v-for="item in comicRandomList" :key="item.workCode"
-            :to="'/ComicDetail/' + item.workCode">
+            :to="'/comic/detail/' + item.workCode">
             <img class="swiper-item-cover" :src="item.coverUrl" alt="">
             <label class="swiper-item-title">{{ item.workName }}</label>
         </router-link>

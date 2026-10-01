@@ -1,38 +1,45 @@
-import { createRouter,createWebHashHistory } from "vue-router";
-import Home from "@/views/Home.vue";
-import component from "element-plus/es/components/tree-select/src/tree-select-option.mjs";
+import { createRouter, createWebHashHistory } from 'vue-router'
+import Home from '@/views/Home.vue'
 
-const routes =[
+const routes = [
     {
-        path:"/",
-        name:"home",
-        component:Home
+        path: '/',
+        name: 'home',
+        component: Home
     },
     {
-        path:"/Comic",
-        name:"comic",
-        component:()=>import("@/views/Comic/Comic.vue") //这是异步加载，不会在顶部全部加载，优化加载，首页以外建议全部异步引入
+        path: '/comic',
+        name: 'comic',
+        component: () => import('@/views/Comic/Comic.vue'),
     },
     {
-        path:"/ComicDetail/:workCode",
-        name:"comicDetail",
-        component:()=>import("@/views/Comic/ComicDetail.vue")
+        path: '/comic/detail/:workCode',
+        name: 'comicDetail',
+        component: () => import('@/views/Comic/ComicDetail.vue'),
     },
     {
-        path:"/ComicPage/:contentCode",
-        name:"comicPage",
-        component:()=>import("@/views/Comic/ComicPage.vue")
+        path: '/comic/page/:contentCode',
+        name: 'comicPage',
+        component: () => import('@/views/Comic/ComicPage.vue'),
     },
     {
-        path:"/Management",
-        name:"management",
-        component:()=>import("@/views/Management/Management.vue")
-    }
-];
+        path: '/management',
+        name: 'management',
+        component: () => import('@/views/Management/Management.vue'),
+    },
+    {
+        path: '/:pathMatch(.*)*',
+        name: 'notFound',
+        component: () => import('@/views/NotFound.vue'),
+    },
+]
 
 const router = createRouter({
-    history:createWebHashHistory(),
-    routes
-});
+    history: createWebHashHistory(),
+    routes,
+    scrollBehavior(to, from, savedPosition) {
+        return savedPosition || { top: 0 }
+    },
+})
 
-export default router;
+export default router

@@ -1,70 +1,65 @@
 <template>
-    <main class="main-container" ref="mainContainer">
-        <h3 id="title" @click="addCounterCommit">
-            {{ currentContent.contentName }}
-        </h3>
-        <div class="image-list">
-            <div v-if="loading">加载中...</div>
-            <img v-for="url in currentContent.imgUrlList" :key="url" :src="url" alt="漫画页" v-show="!loading" />
+    <section class="comic-page">
+        <h1 class="chapter-title">{{ currentContent.contentName || '加载中...' }}</h1>
+
+        <div v-if="loading" class="state">加载中...</div>
+
+        <div v-else class="image-list">
+            <img v-for="(url, index) in currentContent.imgUrlList" :key="`${url}-${index}`" :src="url"
+                :alt="`第 ${index + 1} 页`" loading="lazy" />
         </div>
-        <div class="pre-n-next">
-            <router-link class="pre" v-if="previousContent.contentCode"
-                :to="'/ComicPage/' + previousContent.contentCode">
-                上一话【{{ previousContent.contentName }}】
+
+        <nav class="chapter-nav">
+            <router-link v-if="previousContent.contentCode" class="nav-btn"
+                :to="'/comic/page/' + previousContent.contentCode">
+                ← 上一话【{{ previousContent.contentName }}】
             </router-link>
-            <router-link class="next" v-if="nextContent.contentCode" :to="'/ComicPage/' + nextContent.contentCode">
-                下一话【{{ nextContent.contentName }}】
+            <span v-else class="nav-btn disabled">已是第一话</span>
+
+            <router-link v-if="nextContent.contentCode" class="nav-btn" :to="'/comic/page/' + nextContent.contentCode">
+                下一话【{{ nextContent.contentName }}】 →
             </router-link>
-        </div>
-    </main>
+            <span v-else class="nav-btn disabled">已是最后一话</span>
+        </nav>
+    </section>
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted, nextTick } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import instance from '@/utils/request' // 你的 axios 实例
+import { ref, reactive, watch, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { comicApi } from '@/api'
 
-defineOptions({
-    name: "ComicPage",
-    inheritAttrs: false
-})
+defineOptions({ name: 'ComicPageView' })
 
-const router = useRouter()
 const route = useRoute()
+const router = useRouter()
 
-// ===== 3. 响应式数据 =====
 const loading = ref(false)
 
-const previousContent = reactive({
-    contentCode: '',
-    contentName: ''
-})
-const nextContent = reactive({
-    contentCode: '',
-    contentName: ''
-})
+const previousContent = reactive({ contentCode: '', contentName: '' })
+const currentContent = reactive({ contentCode: '', contentName: '', imgUrlList: [] })
+const nextContent = reactive({ contentCode: '', contentName: '' })
 
-const currentContent = reactive({
-    contentCode: "",
-    contentName: "",
-    imgUrlList: []
-})
+function resetContent() {
+    Object.assign(previousContent, { contentCode: '', contentName: '' })
+    Object.assign(currentContent, { contentCode: '', contentName: '', imgUrlList: [] })
+    Object.assign(nextContent, { contentCode: '', contentName: '' })
+}
 
-// ===== 4. 方法 =====
-const loadImageList = async () => {
+async function fetchContent(contentCode) {
     loading.value = true
+    resetContent()
+    currentContent.contentCode = contentCode
+
     try {
-        const res = await instance.get(`/api/Comic/contents/${currentContent.contentCode}`)
-        console.log(res.data)
-        Object.assign(previousContent,
-            res.data.contents["previous"] || { contentCode: "", contentName: "" })
-        Object.assign(currentContent,
-            res.data.contents["current"] || { contentCode: "", contentName: "", imgUrlList: [] })
-        Object.assign(nextContent,
-            res.data.contents["next"] || { contentCode: "", contentName: "" })
-        console.log('加载成功', res)
-    } catch (error) {
-        console.error('请求失败:', error)
+        const data = await comicApi.getContent(contentCode)
+        const { previous, current, next } = data?.contents || {}
+
+        Object.assign(previousContent, previous || { contentCode: '', contentName: '' })
+        Object.assign(currentContent, current || { contentCode: '', contentName: '', imgUrlList: [] })
+        Object.assign(nextContent, next || { contentCode: '', contentName: '' })
+    } catch (e) {
+        console.error('加载章节失败:', e)
     } finally {
         loading.value = false
         await nextTick()
@@ -72,84 +67,75 @@ const loadImageList = async () => {
     }
 }
 
-// ===== 5. 监听路由参数变化 =====
 watch(
     () => route.params.contentCode,
-    (newValue) => {
-        if (newValue) {
-            currentContent.contentCode = newValue
-            loadImageList()
+    (contentCode) => {
+        if (contentCode) {
+            fetchContent(contentCode)
         } else {
-            router.push('/Comic')
+            router.replace('/comic')
         }
     },
-    { immediate: true } // 组件创建时立即执行一次
+    { immediate: true },
 )
-
-// ===== 6. 暴露数据给模板 =====
 </script>
 
-<style>
-@import url(../../assets/css/common.css);
-</style>
-
 <style scoped>
-#title {
-    font-size: 3rem;
-    color: var(--font-color-1st);
-    align-self: center;
-}
-
-.main-container {
+.comic-page {
     display: flex;
     flex-direction: column;
+    align-items: center;
+    gap: 30px;
     width: 100%;
-    padding: 10px;
-    gap: 50px;
+}
+
+.chapter-title {
+    font-size: 2rem;
+    color: var(--font-color-1st);
+    text-align: center;
 }
 
 .image-list {
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 0;
-    align-self: center;
+    align-items: center;
 }
 
-.main-container img {
+.image-list img {
     width: 100%;
     height: auto;
+    display: block;
 }
 
-.pre-n-next {
-    /* display: flex;
-    flex-direction: row;
-    justify-content: space-between; */
-    position: relative;
+.chapter-nav {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    width: 100%;
+    padding: 20px 0;
 }
 
-.pre-n-next a {
-    font-size: 1.2rem;
+.nav-btn {
     color: var(--font-color-1st);
     text-decoration: none;
+    font-size: 1rem;
+    transition: color 0.2s;
 }
 
-.pre {
-    position: absolute;
-    left: 50px;
+.nav-btn:hover:not(.disabled) {
+    color: var(--font-color-cur);
 }
 
-.next {
-    position: absolute;
-    right: 50px;
+.nav-btn.disabled {
+    color: var(--font-color-3rd);
+    cursor: not-allowed;
 }
 
-/* 手机：默认样式，< 768px */
-/* 电脑：>= 768px */
 @media (min-width: 768px) {
 
-    /* 电脑端覆盖 */
-    .image-list {
+    .image-list,
+    .chapter-nav {
         width: 60%;
     }
 }
