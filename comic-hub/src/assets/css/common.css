@@ -1,39 +1,113 @@
 :root {
+    /* 背景 */
     --bg-app: rgba(0, 0, 0, 0.5);
     --bg-color-1st: #111;
-    --bg-color-2nd: #333;
-    --bg-color-3rd: #555;
+    --bg-color-2nd: #1a1a1a;
+    --bg-color-3rd: #333;
+    --bg-color-4th: #555;
     --bg-color-btn: #2f7fff;
-    --bg-color-tag-type: #2f7fff;
-    --bg-color-tag: #3f8fff;
+    --bg-color-tag: #2f7fff;
+    --bg-color-tag-type: #3f8fff;
     --bg-color-cur: #2f7fff;
+
+    /* 文字 */
     --font-color-1st: #fff;
     --font-color-2nd: #ddd;
     --font-color-3rd: #bbb;
     --font-color-cur: #2f7fff;
+
+    /* 圆角 */
     --radius-s: 5px;
     --radius-m: 10px;
     --radius-l: 15px;
+
+    /* 布局 */
+    --nav-height: 80px;
+    --content-width-1st: 60%;
+    --content-width-2nd: 60%;
+    --content-width-3rd: 60%;
+
+    --aspect-ratio-cover: 3/4;
 }
 
 * {
-    padding: 0;
     margin: 0;
+    padding: 0;
     box-sizing: border-box;
     font-size: 1rem;
 }
 
+html,
 body {
-    height: 100vh;
+    height: 100%;
     width: 100%;
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
+    background-color: var(--bg-color-1st);
+    color: var(--font-color-1st);
+    font-family:
+        -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
+        Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 #app {
+    min-height: 100vh;
+}
+
+/* ---------- 共享状态 ---------- */
+.state {
+    padding: 40px 0;
+    text-align: center;
+    color: var(--font-color-3rd);
+}
+
+.state-error {
+    color: #e74c3c;
+}
+
+/* ---------- 共享作品网格（首页 / 漫画列表复用）---------- */
+.works-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 20px;
+    padding: 20px 0;
     width: 100%;
+}
+
+.work-item {
     display: flex;
     flex-direction: column;
     align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    transition: transform 0.2s ease-in-out;
+}
+
+.work-item:hover {
+    transform: scale(1.05);
+}
+
+.work-cover {
+    width: 100%;
+    aspect-ratio: var(--aspect-ratio-cover);
+    object-fit: cover;
+    object-position: center;
+    border-radius: var(--radius-s);
+    background-color: var(--bg-color-3rd);
+}
+
+.work-title {
+    color: var(--font-color-1st);
+    font-size: 0.9rem;
+    text-align: center;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .works-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
 }

@@ -1,5 +1,6 @@
 import { createRouter,createWebHashHistory } from "vue-router";
 import Home from "@/views/Home.vue";
+import component from "element-plus/es/components/tree-select/src/tree-select-option.mjs";
 
 const routes =[
     {
@@ -21,6 +22,11 @@ const routes =[
         path:"/ComicPage/:contentCode",
         name:"comicPage",
         component:()=>import("@/views/Comic/ComicPage.vue")
+    },
+    {
+        path:"/Management",
+        name:"management",
+        component:()=>import("@/views/Management/Management.vue")
     }
 ];
 
