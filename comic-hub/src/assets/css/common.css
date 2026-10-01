@@ -1,0 +1,39 @@
+:root {
+    --bg-app: rgba(0, 0, 0, 0.5);
+    --bg-color-1st: #111;
+    --bg-color-2nd: #333;
+    --bg-color-3rd: #555;
+    --bg-color-btn: #2f7fff;
+    --bg-color-tag-type: #2f7fff;
+    --bg-color-tag: #3f8fff;
+    --bg-color-cur: #2f7fff;
+    --font-color-1st: #fff;
+    --font-color-2nd: #ddd;
+    --font-color-3rd: #bbb;
+    --font-color-cur: #2f7fff;
+    --radius-s: 5px;
+    --radius-m: 10px;
+    --radius-l: 15px;
+}
+
+* {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    font-size: 1rem;
+}
+
+body {
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+}
+
+#app {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
